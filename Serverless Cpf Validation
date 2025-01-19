@@ -1,0 +1,40 @@
+import re
+import json
+from typing import Dict
+
+def is_valid_cpf(cpf: str) -> bool:
+    """Valida um CPF brasileiro."""
+    cpf = re.sub(r'[^0-9]', '', cpf)  # Remove quaisquer caracteres não numéricos
+
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+
+    # Calcula o primeiro dígito verificador
+    sum_1 = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    digit_1 = (sum_1 * 10 % 11) % 10
+
+    # Calcula o segundo dígito verificador
+    sum_2 = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    digit_2 = (sum_2 * 10 % 11) % 10
+
+    return cpf[-2:] == f"{digit_1}{digit_2}"
+
+def lambda_handler(event: Dict, context: Dict) -> Dict:
+    """Função handler do AWS Lambda para validar CPF."""
+    body = json.loads(event.get('body', '{}'))
+    cpf = body.get('cpf', '')
+
+    if not cpf:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": "O CPF é obrigatório."})
+        }
+
+    is_valid = is_valid_cpf(cpf)
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"cpf": cpf, "is_valid": is_valid})
+    }
+
+
